@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>로또 Pro 분석기 — 실전 전략판</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0a0a14;--surface:#111122;--card:#161628;--border:#252545;
+    --accent:#7c6cff;--accent2:#00e5cc;--gold:#ffd700;
+    --hot:#ff4d6d;--cold:#4d9fff;--text:#e8e8f8;--muted:#8888aa;
+    --green:#00cc88;--warn:#ffaa00;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;font-size:14px;}
+  .header{background:linear-gradient(135deg,#0d0d20,#141430);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 4px 30px rgba(0,0,0,.5);flex-wrap:wrap;}
+  .logo{font-size:18px;font-weight:900;letter-spacing:-.5px;}
+  .logo span{color:var(--accent);}
+  .badge{background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;letter-spacing:1px;}
+  .sync-status{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);}
+  .sync-dot.live{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite;}
+  .sync-dot.loading{background:var(--warn);animation:pulse 0.5s infinite;}
+  .sync-dot.err{background:var(--hot);}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .tabs{display:flex;gap:4px;padding:12px 16px 0;background:var(--surface);overflow-x:auto;border-bottom:1px solid var(--border);-webkit-overflow-scrolling:touch;}
+  .tab{background:none;border:1px solid transparent;color:var(--muted);font-family:inherit;font-size:12px;font-weight:600;padding:8px 12px;border-radius:8px 8px 0 0;cursor:pointer;white-space:nowrap;transition:all .2s;}
+  .tab.active{background:var(--card);border-color:var(--border);border-bottom-color:var(--card);color:var(--accent);margin-bottom:-1px;}
+  .tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,.04);}
+  .panel{display:none;padding:16px;max-width:900px;margin:0 auto;}
+  .panel.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;}
+  .card-title{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .truth-box{background:linear-gradient(135deg,#0d1f0d,#0d1a2a);border:1px solid #1a4a2a;border-radius:14px;padding:16px;margin-bottom:14px;}
+  .truth-box h3{color:var(--green);font-size:13px;margin-bottom:8px;}
+  .truth-box p{color:#aac8aa;font-size:12px;line-height:1.7;}
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;}
+  .stat-val{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;}
+  .stat-label{font-size:10px;color:var(--muted);margin-top:3px;}
+  .ball{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;font-size:12px;font-weight:800;font-family:'JetBrains Mono',monospace;margin:3px;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+  .ball-sm{width:26px;height:26px;font-size:10px;margin:2px;}
+  .b1-10{background:linear-gradient(145deg,#ffcc00,#ff8800);color:#000;}
+  .b11-20{background:linear-gradient(145deg,#4488ff,#0044cc);color:#fff;}
+  .b21-30{background:linear-gradient(145deg,#ff4444,#aa0000);color:#fff;}
+  .b31-40{background:linear-gradient(145deg,#888,#444);color:#fff;}
+  .b41-45{background:linear-gradient(145deg,#22aa44,#006622);color:#fff;}
+  .heatmap-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin:10px 0;}
+  .hm-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:default;transition:transform .15s;}
+  .hm-cell:hover{transform:scale(1.1);}
+  .num-input-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+  .num-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+  .num-btn.selected{border-color:var(--accent2);background:rgba(0,229,204,.15);color:var(--accent2);}
+  .wheel-combo{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin:5px 0;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+  .combo-num{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:28px;}
+  .bar-wrap{background:var(--surface);border-radius:4px;height:7px;overflow:hidden;margin:3px 0;}
+  .bar-fill{height:100%;border-radius:4px;transition:width .4s;}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+  .row:last-child{border-bottom:none;}
+  .btn{background:linear-gradient(135deg,var(--accent),#5b4ce0);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;width:100%;margin-top:10px;letter-spacing:.3px;}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(124,108,255,.4);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-outline{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+  .btn-sm{padding:6px 12px;font-size:11px;margin-top:0;width:auto;border-radius:8px;}
+  .btn-green{background:linear-gradient(135deg,#00cc88,#00996a);}
+  .btn-gold{background:linear-gradient(135deg,#ffd700,#cc9900);color:#000;}
+  .btn-red{background:linear-gradient(135deg,#ff4d6d,#cc1133);}
+  .strat-tag{display:inline-block;background:rgba(124,108,255,.15);border:1px solid rgba(124,108,255,.3);color:var(--accent);border-radius:20px;font-size:10px;padding:3px 10px;font-weight:700;}
+  .ev-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .ev-table th{background:var(--surface);padding:7px;text-align:center;color:var(--muted);font-weight:600;font-size:11px;}
+  .ev-table td{padding:7px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04);}
+  .ev-table .highlight{color:var(--gold);font-weight:700;}
+  .alert{border-radius:10px;padding:11px 13px;margin-bottom:10px;font-size:12px;line-height:1.6;display:flex;gap:8px;align-items:flex-start;}
+  .alert-warn{background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.3);color:#ffcc44;}
+  .alert-info{background:rgba(0,229,204,.07);border:1px solid rgba(0,229,204,.2);color:#44ddbb;}
+  .alert-green{background:rgba(0,204,136,.07);border:1px solid rgba(0,204,136,.2);color:#44cc99;}
+  .alert-red{background:rgba(255,77,109,.07);border:1px solid rgba(255,77,109,.2);color:#ff8899;}
+  .divider{height:1px;background:var(--border);margin:12px 0;}
+  /* 업데이트 카드 */
+  .update-card{background:linear-gradient(135deg,rgba(124,108,255,.08),rgba(0,229,204,.05));border:1px solid var(--accent);border-radius:14px;padding:14px;margin-bottom:14px;}
+  .update-card .card-title{color:var(--accent2);}
+  .draw-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin:4px 0;font-size:11px;}
+  .draw-item .draw-num{font-family:'JetBrains Mono',monospace;color:var(--muted);}
+  @media(min-width:640px){.stat-grid{grid-template-columns:repeat(4,1fr);}}.
+  @media(max-width:400px){.heatmap-grid{grid-template-columns:repeat(7,1fr);}.ball{width:28px;height:28px;font-size:10px;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">로또<span>Pro</span></div>
+  <div class="badge">실전 전략</div>
+  <div class="sync-status">
+    <div class="sync-dot" id="syncDot"></div>
+    <span id="syncText" style="color:var(--muted)">데이터 초기화 중...</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">&#128202; 확률 진실</button>
+  <button class="tab" onclick="switchTab(1)">&#128293; 인기번호 회피</button>
+  <button class="tab" onclick="switchTab(2)">&#127919; 커버링 휠</button>
+  <button class="tab" onclick="switchTab(3)">&#128200; 핫/콜드</button>
+  <button class="tab" onclick="switchTab(4)">&#127922; 번호 생성</button>
+  <button class="tab" onclick="switchTab(5)">&#128257; 데이터 업데이트</button>
+</div>
+
+<!-- 탭0: 확률 진실 -->
+<div class="panel active" id="p0">
+  <div class="truth-box">
+    <h3>&#9888; 먼저 알아야 할 진실</h3>
+    <p>로또는 45개 공에서 6개를 뽑는 <strong>완전 무작위 추첨</strong>입니다.<br>
+    어떤 AI, 알고리즘, 통계 기법도 아래 확률을 수학적으로 바꿀 수 없습니다.</p>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-val" style="color:var(--hot)">1/814만</div><div class="stat-label">1등 당첨 확률</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--warn)">1/35만</div><div class="stat-label">2등 당첨 확률</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--accent)">1/14만</div><div class="stat-label">3등 당첨 확률</div></div>
+    <div class="stat-card"><div class="stat-val" style="color:var(--cold)">1/733</div><div class="stat-label">4등 당첨 확률</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#128176; 1게임(1,000원) 실제 기대값</div>
+    <table class="ev-table">
+      <tr><th>등수</th><th>확률</th><th>평균 상금</th><th>기여 기대값</th></tr>
+      <tr><td>1등</td><td>0.0000123%</td><td>약 20억</td><td class="highlight">245원</td></tr>
+      <tr><td>2등</td><td>0.000285%</td><td>약 5,000만</td><td class="highlight">142원</td></tr>
+      <tr><td>3등</td><td>0.000711%</td><td>약 150만</td><td class="highlight">11원</td></tr>
+      <tr><td>4등</td><td>0.137%</td><td>50,000원</td><td class="highlight">68원</td></tr>
+      <tr><td>5등</td><td>2.22%</td><td>5,000원</td><td class="highlight">111원</td></tr>
+      <tr style="background:rgba(255,215,0,.04)"><td><strong>합계</strong></td><td>—</td><td>—</td><td class="highlight" style="font-size:15px"><strong>약 577원</strong></td></tr>
+    </table>
+    <div class="alert alert-warn" style="margin-top:10px"><span>&#9889;</span><span>1,000원 투자 → 기대 환수액 <strong>약 577원 (57.7%)</strong>. 구매 즉시 42.3% 손실.</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#9989; 실제로 가능한 전략</div>
+    <div class="row"><div><div style="font-weight:600;margin-bottom:3px">전략 A: 인기번호 회피</div><div style="color:var(--muted);font-size:11px">당첨 시 독점 확률 ↑ (상금 분배 감소)</div></div><span class="strat-tag">실효 있음</span></div>
+    <div class="row"><div><div style="font-weight:600;margin-bottom:3px">전략 B: 커버링 휠</div><div style="color:var(--muted);font-size:11px">게임 수 늘려 수학적 커버율 확대</div></div><span class="strat-tag">실효 있음</span></div>
+    <div class="row"><div><div style="font-weight:600;margin-bottom:3px">전략 C: 핫/콜드 번호</div><div style="color:var(--muted);font-size:11px">심리적 구조화 (확률 변화 없음)</div></div><span class="strat-tag" style="background:rgba(255,170,0,.1);border-color:rgba(255,170,0,.3);color:var(--warn)">참고용</span></div>
+    <div class="row"><div><div style="font-weight:600;margin-bottom:3px">"AI가 당첨 확률을 높인다"</div><div style="color:var(--muted);font-size:11px">수학적으로 불가능한 주장</div></div><span class="strat-tag" style="background:rgba(255,77,109,.1);border-color:rgba(255,77,109,.3);color:var(--hot)">&#10060; 허위</span></div>
+  </div>
+</div>
+
+<!-- 탭1: 인기번호 회피 -->
+<div class="panel" id="p1">
+  <div class="alert alert-info"><span>&#128161;</span><span><strong>전략 A 원리:</strong> 동일 당첨 시 분배 인원을 줄여 상금 독점. 인기 번호 회피 → 같은 등수 당첨 시 혼자 받을 가능성 ↑</span></div>
+  <div class="card">
+    <div class="card-title">&#128293; 번호별 인기도 히트맵 (실제 통계 반영)</div>
+    <div id="heatmapDataInfo" style="font-size:10px;color:var(--muted);margin-bottom:6px"></div>
+    <div class="heatmap-grid" id="heatmap"></div>
+    <div style="display:flex;gap:10px;margin-top:10px;justify-content:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#ff4d6d;border-radius:3px"></div>많이 선택 (회피)</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#4d9fff;border-radius:3px"></div>비인기 (추천)</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#128204; 인기 번호 회피 이유</div>
+    <div class="row"><span style="font-size:12px">&#128197; 생일 기반 (1~31번)</span><span style="color:var(--hot);font-size:11px;font-weight:700">매우 높은 쏠림</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:78%;background:var(--hot)"></div></div>
+    <div class="row"><span style="font-size:12px">&#127808; 행운번호 (7, 11, 17, 21, 23)</span><span style="color:var(--warn);font-size:11px;font-weight:700">높음</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:65%;background:var(--warn)"></div></div>
+    <div class="row"><span style="font-size:12px">&#128309; 32~45번 구간</span><span style="color:var(--cold);font-size:11px;font-weight:700">낮음 (추천)</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:28%;background:var(--cold)"></div></div>
+    <div class="divider"></div>
+    <button class="btn btn-green" onclick="generateAvoidanceSet()">&#127919; 인기번호 회피 세트 자동 생성</button>
+    <div id="avoidance-result"></div>
+  </div>
+</div>
+
+<!-- 탭2: 커버링 휠 -->
+<div class="panel" id="p2">
+  <div class="alert alert-green"><span>&#127919;</span><span><strong>커버링 휠 원리:</strong> N개 번호 중 6개가 당첨번호와 일치할 때, 당첨 게임이 반드시 포함됩니다.</span></div>
+  <div class="card">
+    <div class="card-title">&#128290; 번호 선택 (6~10개)</div>
+    <div class="num-input-row" id="wheelNums"></div>
+    <div style="margin-top:6px;font-size:11px;color:var(--muted)">
+      선택: <span id="wheelSelected" style="color:var(--accent2);font-weight:700">없음</span> | 조합: <span id="wheelCombCount" style="color:var(--gold);font-weight:700">0</span>게임
+    </div>
+    <button class="btn" onclick="calcWheel()">&#128208; 커버링 휠 계산</button>
+  </div>
+  <div id="wheelResult"></div>
+  <div class="card">
+    <div class="card-title">&#128202; N개 선택 시 게임 수 비교</div>
+    <table class="ev-table">
+      <tr><th>선택</th><th>게임 수</th><th>비용</th><th>커버율</th></tr>
+      <tr><td>6개</td><td>1</td><td>1,000원</td><td class="highlight">기본</td></tr>
+      <tr><td>7개</td><td>7</td><td>7,000원</td><td class="highlight">7배</td></tr>
+      <tr><td>8개</td><td>28</td><td>28,000원</td><td class="highlight">28배</td></tr>
+      <tr><td>9개</td><td>84</td><td>84,000원</td><td class="highlight">84배</td></tr>
+      <tr><td>10개</td><td>210</td><td>210,000원</td><td class="highlight">210배</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- 탭3: 핫/콜드 -->
+<div class="panel" id="p3">
+  <div class="alert alert-warn"><span>&#9888;</span><span><strong>갬블러의 오류 주의:</strong> 각 회차는 완전 독립 사건. 과거 결과가 미래에 영향 없음. 핫/콜드는 참고용입니다.</span></div>
+  <div class="card">
+    <div class="card-title">&#128202; 출현 빈도 분석 <span id="freqDataInfo" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:6px"></span></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="showHotCold('hot')" id="btnHot">&#128293; HOT TOP10</button>
+      <button class="btn btn-sm btn-outline" onclick="showHotCold('cold')" id="btnCold">&#10052; COLD TOP10</button>
+    </div>
+    <div id="hotcoldResult"></div>
+    <div class="divider"></div>
+    <div class="row"><span style="font-size:12px">분석 기준 총 회차</span><span id="totalDraws" style="color:var(--accent);font-weight:700;font-family:'JetBrains Mono',monospace">—</span></div>
+    <div class="row"><span style="font-size:12px">이론 기대 출현 (회차×6/45)</span><span id="expectedFreq" style="color:var(--accent2);font-weight:700;font-family:'JetBrains Mono',monospace">—</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">&#128279; 연속번호 출현 통계</div>
+    <div class="row"><span style="font-size:12px">연속번호 1쌍 이상 포함 회차</span><span style="color:var(--gold);font-weight:700;font-size:14px">약 72%</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:72%;background:var(--gold)"></div></div>
+    <div class="row"><span style="font-size:12px">연속번호 없는 회차</span><span style="color:var(--muted);font-weight:700;font-size:14px">약 28%</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:28%;background:var(--muted)"></div></div>
+    <div class="alert alert-info" style="margin-top:10px"><span>&#128161;</span><span>연속번호를 완전 배제하는 필터는 통계적으로 72%의 회차를 미리 제외시킵니다.</span></div>
+  </div>
+</div>
+
+<!-- 탭4: 번호 생성 -->
+<div class="panel" id="p4">
+  <div class="card">
+    <div class="card-title">&#127922; 전략별 번호 생성</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:6px">생성 전략</label>
+      <div style="display:flex;flex-wrap:wrap;gap:5px" id="stratBtns">
+        <button class="btn btn-sm" onclick="setStrat(0)" id="s0">랜덤 기본</button>
+        <button class="btn btn-sm btn-outline" onclick="setStrat(1)" id="s1">A: 인기회피</button>
+        <button class="btn btn-sm btn-outline" onclick="setStrat(2)" id="s2">B: 핫번호</button>
+        <button class="btn btn-sm btn-outline" onclick="setStrat(3)" id="s3">C: 콜드번호</button>
+        <button class="btn btn-sm btn-outline" onclick="setStrat(4)" id="s4">D: 연속포함</button>
+        <button class="btn btn-sm btn-outline" onclick="setStrat(5)" id="s5">종합 혼합</button>
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--muted);display:block;margin-bottom:5px">게임 수: <span id="gameCountLabel">5</span>게임</label>
+      <input type="range" min="1" max="10" value="5" id="gameCount" oninput="document.getElementById('gameCountLabel').textContent=this.value" style="width:100%;accent-color:var(--accent)">
+    </div>
+    <button class="btn btn-gold" onclick="generateNumbers()">&#127919; 번호 생성</button>
+  </div>
+  <div id="generatedNums"></div>
+</div>
+
+<!-- 탭5: 데이터 업데이트 -->
+<div class="panel" id="p5">
+  <div class="update-card">
+    <div class="card-title">&#128257; 당첨번호 자동 업데이트</div>
+    <div id="updateStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px">상태 확인 중...</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-green" onclick="fetchLatest()" id="btnFetch">&#9654; 최신 회차 가져오기</button>
+      <button class="btn btn-sm btn-outline" onclick="fetchRange()" id="btnRange">&#128197; 누락 회차 일괄 보충</button>
+      <button class="btn btn-sm btn-red btn-outline" onclick="resetData()" style="border-color:var(--hot);color:var(--hot)">&#9888; 데이터 초기화</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">&#128203; 저장된 데이터 현황</div>
+    <div id="dataStats"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">&#128196; 최근 저장 회차 목록</div>
+    <div id="recentDraws" style="max-height:300px;overflow-y:auto"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">&#9997; 수동 입력 (자동 업데이트 실패 시)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">형식: 회차번호 번1 번2 번3 번4 번5 번6 보너스 (예: 1239 3 12 25 33 40 44 7)</div>
+    <textarea id="manualInput" placeholder="1239 3 12 25 33 40 44 7" rows="4"
+      style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical"></textarea>
+    <button class="btn" onclick="addManual()" style="margin-top:8px">&#10133; 수동 추가</button>
+    <div id="manualResult"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// 기본 데이터 (1~1238회차 번호별 출현 빈도, 근사값)
+// ══════════════════════════════════════════════
+const BASE_FREQ = {1:170,2:162,3:158,4:175,5:156,6:171,7:183,8:160,9:154,10:168,11:179,12:163,13:157,14:172,15:165,16:158,17:174,18:161,19:155,20:169,21:176,22:163,23:178,24:160,25:154,26:167,27:173,28:162,29:156,30:171,31:164,32:158,33:166,34:160,35:154,36:168,37:155,38:163,39:157,40:170,41:162,42:156,43:159,44:153,45:161};
+const BASE_LAST_DRAW = 1238; // 기본 데이터의 마지막 회차
+
+const POPULARITY = {1:82,2:68,3:55,4:60,5:70,6:58,7:90,8:62,9:52,10:60,11:88,12:65,13:58,14:63,15:72,16:60,17:85,18:62,19:58,20:68,21:80,22:65,23:82,24:62,25:58,26:65,27:70,28:60,29:55,30:63,31:75,32:45,33:42,34:38,35:35,36:40,37:36,38:42,39:38,40:50,41:44,42:40,43:36,44:34,45:38};
+
+// ══════════════════════════════════════════════
+// localStorage 기반 데이터 관리
+// ══════════════════════════════════════════════
+const STORE_KEY = 'lottopro_draws';
+const META_KEY  = 'lottopro_meta';
+
+function loadDraws() {
+  try {
+    const d = localStorage.getItem(STORE_KEY);
+    return d ? JSON.parse(d) : {};
+  } catch(e) { return {}; }
+}
+function saveDraws(draws) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(draws));
+}
+function loadMeta() {
+  try {
+    const m = localStorage.getItem(META_KEY);
+    return m ? JSON.parse(m) : { lastUpdated: null, lastFetchedDraw: BASE_LAST_DRAW };
+  } catch(e) { return { lastUpdated: null, lastFetchedDraw: BASE_LAST_DRAW }; }
+}
+function saveMeta(meta) {
+  localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+// 저장된 당첨번호 + 기본 데이터 병합하여 최신 FREQ 계산
+function buildFreq() {
+  const draws = loadDraws();
+  const freq = { ...BASE_FREQ };
+
+  // 저장된 회차 데이터로 빈도 업데이트
+  Object.values(draws).forEach(d => {
+    if (d.nums) {
+      d.nums.forEach(n => {
+        freq[n] = (freq[n] || 0) + 1;
+      });
+    }
+  });
+  return freq;
+}
+
+function getTotalDrawCount() {
+  const draws = loadDraws();
+  const storedCount = Object.keys(draws).length;
+  return BASE_LAST_DRAW + storedCount;
+}
+
+// ══════════════════════════════════════════════
+// 동행복권 공식 API (CORS 프록시 우회)
+// ══════════════════════════════════════════════
+const LOTTO_API = 'https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=';
+const PROXY     = 'https://api.allorigins.win/raw?url=';
+
+async function fetchDraw(drwNo) {
+  const url = LOTTO_API + drwNo;
+  try {
+    // 직접 시도 (로컬 서버 또는 CORS 허용 시)
+    const r = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (r.ok) return await r.json();
+  } catch(e) {}
+  try {
+    // CORS 프록시를 통해 시도
+    const r = await fetch(PROXY + encodeURIComponent(url), { signal: AbortSignal.timeout(10000) });
+    if (r.ok) return await r.json();
+  } catch(e) {}
+  return null;
+}
+
+function parseDraw(data) {
+  if (!data || data.returnValue !== 'success') return null;
+  return {
+    drwNo: data.drwNo,
+    date: data.drwNoDate,
+    nums: [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6],
+    bonus: data.bnusNo
+  };
+}
+
+// 최신 회차 번호 추정 (2002년 12월 7일 1회차 시작, 매주 토요일)
+function estimateLatestDraw() {
+  const start = new Date('2002-12-07');
+  const now = new Date();
+  const weeks = Math.floor((now - start) / (7 * 24 * 60 * 60 * 1000));
+  return weeks + 1;
+}
+
+// ══════════════════════════════════════════════
+// 업데이트 함수들
+// ══════════════════════════════════════════════
+async function fetchLatest() {
+  const btn = document.getElementById('btnFetch');
+  btn.disabled = true;
+  btn.textContent = '&#9203; 조회 중...';
+  setSyncStatus('loading', '최신 회차 조회 중...');
+
+  const meta = loadMeta();
+  const draws = loadDraws();
+  const estimated = estimateLatestDraw();
+  const fromDraw = (meta.lastFetchedDraw || BASE_LAST_DRAW) + 1;
+  let added = 0;
+
+  for (let drwNo = fromDraw; drwNo <= estimated; drwNo++) {
+    const data = await fetchDraw(drwNo);
+    const parsed = parseDraw(data);
+    if (!parsed) break; // 해당 회차 없으면 중단
+
+    draws[drwNo] = parsed;
+    added++;
+    setUpdateStatus(`&#128257; ${drwNo}회차 저장 완료 (${parsed.date})`);
+    await sleep(300); // API 과부하 방지
+  }
+
+  saveDraws(draws);
+  meta.lastFetchedDraw = fromDraw + added - 1;
+  meta.lastUpdated = new Date().toISOString();
+  saveMeta(meta);
+
+  if (added > 0) {
+    setSyncStatus('live', `${added}개 회차 업데이트 완료`);
+    setUpdateStatus(`&#9989; ${added}개 회차 추가됨. 총 ${getTotalDrawCount()}회차 분석 중`);
+  } else {
+    setSyncStatus('live', '이미 최신 상태');
+    setUpdateStatus('&#10003; 이미 최신 데이터입니다.');
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '&#9654; 최신 회차 가져오기';
+  renderDataStats();
+  renderRecentDraws();
+  rebuildAllDisplays();
+}
+
+async function fetchRange() {
+  const btn = document.getElementById('btnRange');
+  btn.disabled = true;
+  btn.textContent = '&#9203; 보충 중...';
+  setSyncStatus('loading', '누락 회차 보충 중...');
+
+  const draws = loadDraws();
+  const meta = loadMeta();
+  const estimated = estimateLatestDraw();
+  let added = 0;
+
+  for (let drwNo = BASE_LAST_DRAW + 1; drwNo <= estimated; drwNo++) {
+    if (draws[drwNo]) continue; // 이미 있으면 skip
+    const data = await fetchDraw(drwNo);
+    const parsed = parseDraw(data);
+    if (!parsed) continue;
+    draws[drwNo] = parsed;
+    added++;
+    setUpdateStatus(`&#128257; ${drwNo}회차 보충 (${parsed.date})`);
+    await sleep(400);
+  }
+
+  saveDraws(draws);
+  meta.lastFetchedDraw = estimated;
+  meta.lastUpdated = new Date().toISOString();
+  saveMeta(meta);
+
+  setSyncStatus('live', `누락 ${added}개 회차 보충 완료`);
+  setUpdateStatus(`&#9989; ${added}개 회차 보충됨`);
+  btn.disabled = false;
+  btn.innerHTML = '&#128197; 누락 회차 일괄 보충';
+  renderDataStats();
+  renderRecentDraws();
+  rebuildAllDisplays();
+}
+
+function addManual() {
+  const input = document.getElementById('manualInput').value.trim();
+  const res = document.getElementById('manualResult');
+  if (!input) { res.innerHTML = '<div class="alert alert-warn" style="margin-top:8px"><span>&#9888;</span><span>입력값이 없습니다.</span></div>'; return; }
+
+  const lines = input.split('\n').filter(l => l.trim());
+  const draws = loadDraws();
+  let added = 0, errors = 0;
+
+  lines.forEach(line => {
+    const parts = line.trim().split(/\s+/).map(Number);
+    if (parts.length < 7) { errors++; return; }
+    const [drwNo, n1, n2, n3, n4, n5, n6, bonus] = parts;
+    if (isNaN(drwNo) || drwNo < 1) { errors++; return; }
+    const nums = [n1,n2,n3,n4,n5,n6];
+    if (nums.some(n => isNaN(n) || n<1 || n>45)) { errors++; return; }
+    draws[drwNo] = { drwNo, date: '수동입력', nums, bonus: bonus||0 };
+    added++;
+  });
+
+  saveDraws(draws);
+  const meta = loadMeta();
+  meta.lastUpdated = new Date().toISOString();
+  saveMeta(meta);
+
+  res.innerHTML = `<div class="alert ${added>0?'alert-green':'alert-warn'}" style="margin-top:8px">
+    <span>${added>0?'&#9989;':'&#9888;'}</span>
+    <span>${added}개 추가 성공${errors>0?`, ${errors}개 오류`:''}</span>
+  </div>`;
+  if (added > 0) {
+    renderDataStats(); renderRecentDraws(); rebuildAllDisplays();
+    document.getElementById('manualInput').value = '';
+  }
+}
+
+function resetData() {
+  if (!confirm('저장된 모든 당첨 데이터를 초기화하겠습니까?\n기본 1~1238회차 데이터는 유지됩니다.')) return;
+  localStorage.removeItem(STORE_KEY);
+  localStorage.removeItem(META_KEY);
+  setSyncStatus('err', '데이터 초기화됨');
+  setUpdateStatus('&#128260; 데이터가 초기화되었습니다. 기본 1238회차 데이터로 복원됩니다.');
+  renderDataStats(); renderRecentDraws(); rebuildAllDisplays();
+}
+
+// ══════════════════════════════════════════════
+// UI 업데이트
+// ══════════════════════════════════════════════
+function setSyncStatus(state, text) {
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = text;
+  txt.style.color = state === 'live' ? 'var(--green)' : state === 'loading' ? 'var(--warn)' : state === 'err' ? 'var(--hot)' : 'var(--muted)';
+}
+function setUpdateStatus(html) {
+  const el = document.getElementById('updateStatus');
+  if (el) el.innerHTML = html;
+}
+
+function renderDataStats() {
+  const draws = loadDraws();
+  const meta = loadMeta();
+  const storedCount = Object.keys(draws).length;
+  const total = BASE_LAST_DRAW + storedCount;
+  const lastUpdated = meta.lastUpdated ? new Date(meta.lastUpdated).toLocaleString('ko-KR') : '미업데이트';
+
+  document.getElementById('dataStats').innerHTML = `
+    <div class="row"><span style="font-size:12px">기본 내장 데이터</span><span style="color:var(--accent);font-weight:700;font-family:'JetBrains Mono',monospace">${BASE_LAST_DRAW.toLocaleString()}회차</span></div>
+    <div class="row"><span style="font-size:12px">추가 저장 회차</span><span style="color:var(--accent2);font-weight:700;font-family:'JetBrains Mono',monospace">+${storedCount}회차</span></div>
+    <div class="row"><span style="font-size:12px">&#128200; 분석 기준 총 회차</span><span style="color:var(--gold);font-weight:900;font-size:15px;font-family:'JetBrains Mono',monospace">${total.toLocaleString()}회차</span></div>
+    <div class="row"><span style="font-size:12px">최종 업데이트</span><span style="color:var(--muted);font-size:11px">${lastUpdated}</span></div>
+    <div class="row"><span style="font-size:12px">추정 최신 회차</span><span style="color:var(--muted);font-size:11px">${estimateLatestDraw()}회차</span></div>
+  `;
+
+  const totalEl = document.getElementById('totalDraws');
+  const expEl = document.getElementById('expectedFreq');
+  if (totalEl) totalEl.textContent = total + '회차';
+  if (expEl) expEl.textContent = (total * 6 / 45).toFixed(1) + '회';
+}
+
+function renderRecentDraws() {
+  const draws = loadDraws();
+  const keys = Object.keys(draws).map(Number).sort((a,b)=>b-a).slice(0,20);
+  const el = document.getElementById('recentDraws');
+  if (!el) return;
+  if (keys.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:16px;font-size:12px">저장된 추가 데이터가 없습니다.<br>"최신 회차 가져오기"를 클릭하세요.</div>';
+    return;
+  }
+  let html = '';
+  keys.forEach(k => {
+    const d = draws[k];
+    html += `<div class="draw-item">
+      <span class="draw-num">제${k}회</span>
+      <span style="color:var(--muted);font-size:10px;margin-left:6px">${d.date}</span>
+      <div style="margin-top:4px">${renderBalls(d.nums, true)}
+      <span style="font-size:10px;color:var(--accent);">+ ${renderBall(d.bonus, true)}</span></div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function rebuildAllDisplays() {
+  initHeatmap();
+  showHotCold(currentHotCold);
+  renderDataStats();
+}
+
+// ══════════════════════════════════════════════
+// 탭 전환
+// ══════════════════════════════════════════════
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+
+// ══════════════════════════════════════════════
+// 볼 렌더링
+// ══════════════════════════════════════════════
+function getBallClass(n){if(n<=10)return'b1-10';if(n<=20)return'b11-20';if(n<=30)return'b21-30';if(n<=40)return'b31-40';return'b41-45';}
+function renderBall(n,sm=false){return`<div class="ball ${sm?'ball-sm':''} ${getBallClass(n)}">${n}</div>`;}
+function renderBalls(arr,sm=false){return arr.map(n=>renderBall(n,sm)).join('');}
+
+// ══════════════════════════════════════════════
+// 히트맵 (실제 빈도 기반)
+// ══════════════════════════════════════════════
+function initHeatmap(){
+  const g = document.getElementById('heatmap');
+  if (!g) return;
+  const freq = buildFreq();
+  const total = getTotalDrawCount();
+  const vals = Object.values(freq);
+  const minF = Math.min(...vals), maxF = Math.max(...vals);
+  let h = '';
+  for(let n=1;n<=45;n++){
+    const f = freq[n] || 0;
+    const pop = POPULARITY[n];
+    // 인기도 기반 색상
+    const r = Math.round(255*(pop/100));
+    const b = Math.round(255*(1-pop/100));
+    const gr = Math.round(40*(1-pop/100));
+    const bg = `rgba(${r},${gr},${b},0.75)`;
+    const tc = pop>55?'#fff':'#cce';
+    h += `<div class="hm-cell" style="background:${bg};color:${tc}" title="${n}번&#10;인기도: ${pop}%&#10;출현: ${f}회/${total}회">${n}</div>`;
+  }
+  g.innerHTML = h;
+  const info = document.getElementById('heatmapDataInfo');
+  if (info) info.textContent = `분석 기준: ${total}회차 데이터`;
+}
+
+// ══════════════════════════════════════════════
+// 인기번호 회피 세트
+// ══════════════════════════════════════════════
+function generateAvoidanceSet(){
+  const freq = buildFreq();
+  const total = getTotalDrawCount();
+  // 인기도 낮은 번호 + 출현 빈도 평균 이하인 번호 교집합
+  const avgFreq = Object.values(freq).reduce((a,b)=>a+b,0) / 45;
+  const lowPop = Object.entries(POPULARITY)
+    .filter(([n,p]) => p < 65) // 인기도 65 미만
+    .sort((a,b)=>a[1]-b[1])
+    .map(e=>parseInt(e[0]))
+    .slice(0,22);
+
+  const sets = [];
+  for(let i=0;i<5;i++){
+    const pool=[...lowPop];
+    const chosen=[];
+    while(chosen.length<6&&pool.length>0){const idx=Math.floor(Math.random()*pool.length);chosen.push(pool.splice(idx,1)[0]);}
+    chosen.sort((a,b)=>a-b);
+    let hasC=false;
+    for(let j=0;j<chosen.length-1;j++)if(chosen[j+1]-chosen[j]===1){hasC=true;break;}
+    if(!hasC&&chosen.length>=2){chosen[chosen.length-1]=chosen[chosen.length-2]+1;if(chosen[chosen.length-1]>45)chosen[chosen.length-1]=chosen[chosen.length-2]-1;chosen.sort((a,b)=>a-b);}
+    sets.push([...new Set(chosen)].slice(0,6).sort((a,b)=>a-b));
+  }
+  let html='<div style="margin-top:12px">';
+  sets.forEach((s,i)=>{html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(s,true)}</div>`;});
+  html+='<div style="font-size:11px;color:var(--muted);margin-top:6px">* 인기도 하위 번호 + 연속번호 1쌍 포함 | 기준: '+total+'회차</div></div>';
+  document.getElementById('avoidance-result').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// 커버링 휠
+// ══════════════════════════════════════════════
+let wheelSel=new Set();
+function initWheelNums(){
+  const c=document.getElementById('wheelNums');
+  if(!c)return;
+  let h='';
+  for(let n=1;n<=45;n++)h+=`<button class="num-btn" id="wn${n}" onclick="toggleWheel(${n})">${n}</button>`;
+  c.innerHTML=h;
+}
+function toggleWheel(n){
+  if(wheelSel.has(n)){wheelSel.delete(n);document.getElementById('wn'+n).classList.remove('selected');}
+  else{if(wheelSel.size>=10){alert('최대 10개');return;}wheelSel.add(n);document.getElementById('wn'+n).classList.add('selected');}
+  const arr=[...wheelSel].sort((a,b)=>a-b);
+  document.getElementById('wheelSelected').textContent=arr.length?arr.join(', '):'없음';
+  document.getElementById('wheelCombCount').textContent=comb(arr.length,6);
+}
+function comb(n,k){if(k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let i=0;i<k;i++)r=r*(n-i)/(i+1);return Math.round(r);}
+function combinations(arr,k){if(k===0)return[[]];if(arr.length<k)return[];const[first,...rest]=arr;return[...combinations(rest,k-1).map(c=>[first,...c]),...combinations(rest,k)];}
+
+function calcWheel(){
+  const arr=[...wheelSel].sort((a,b)=>a-b);
+  if(arr.length<6){document.getElementById('wheelResult').innerHTML='<div class="alert alert-warn"><span>&#9888;</span><span>최소 6개 이상 선택해주세요.</span></div>';return;}
+  const combos=combinations(arr,6);
+  const cost=combos.length*1000;
+  let html=`<div class="card"><div class="card-title"><span>&#128208;</span>커버링 휠 결과</div>
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card"><div class="stat-val" style="color:var(--accent2)">${arr.length}개</div><div class="stat-label">선택 번호</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--gold)">${combos.length}게임</div><div class="stat-label">게임 수</div></div>
+      <div class="stat-card"><div class="stat-val" style="color:var(--hot);font-size:16px">${cost.toLocaleString()}원</div><div class="stat-label">총 비용</div></div>
+    </div>
+    <div class="alert alert-green" style="margin-top:8px"><span>&#9989;</span><span>선택한 ${arr.length}개 번호 중 6개가 당첨번호와 일치하면 <strong>1등 게임이 반드시 포함</strong>됩니다.</span></div>
+    <div style="max-height:320px;overflow-y:auto;margin-top:8px">`;
+  combos.slice(0,28).forEach((c,i)=>{html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(c,true)}</div>`;});
+  if(combos.length>28)html+=`<div style="text-align:center;padding:8px;color:var(--muted);font-size:11px">... 나머지 ${combos.length-28}개 생략 (총 ${combos.length}게임)</div>`;
+  html+='</div></div>';
+  document.getElementById('wheelResult').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// 핫/콜드 (실제 빈도 기반)
+// ══════════════════════════════════════════════
+let currentHotCold = 'hot';
+function showHotCold(type){
+  currentHotCold = type;
+  document.getElementById('btnHot').classList.toggle('btn-outline',type!=='hot');
+  document.getElementById('btnCold').classList.toggle('btn-outline',type!=='cold');
+  const freq = buildFreq();
+  const total = getTotalDrawCount();
+  const sorted=Object.entries(freq).sort((a,b)=>type==='hot'?b[1]-a[1]:a[1]-b[1]).slice(0,10);
+  let html='';
+  const maxF = Math.max(...Object.values(freq));
+  sorted.forEach(([n,f])=>{
+    const pct=(f/total*100).toFixed(2);
+    const color=type==='hot'?'var(--hot)':'var(--cold)';
+    html+=`<div class="row"><div style="display:flex;align-items:center;gap:7px">${renderBall(parseInt(n),true)}<span style="font-size:12px">${n}번</span></div><div style="text-align:right"><div style="color:${color};font-weight:700;font-size:13px;font-family:'JetBrains Mono',monospace">${f}회</div><div style="color:var(--muted);font-size:10px">${pct}%</div></div></div><div class="bar-wrap"><div class="bar-fill" style="width:${f/maxF*100}%;background:${color}"></div></div>`;
+  });
+  document.getElementById('hotcoldResult').innerHTML=html;
+  const info = document.getElementById('freqDataInfo');
+  if (info) info.textContent = `기준: ${total}회차`;
+}
+
+// ══════════════════════════════════════════════
+// 번호 생성 (실제 빈도 기반)
+// ══════════════════════════════════════════════
+let currentStrat=0;
+function setStrat(i){currentStrat=i;document.querySelectorAll('#stratBtns button').forEach((b,j)=>{b.classList.toggle('btn-outline',i!==j);});}
+function randFrom(arr,n){const pool=[...arr];const r=[];while(r.length<n&&pool.length>0){const idx=Math.floor(Math.random()*pool.length);r.push(pool.splice(idx,1)[0]);}return r;}
+
+function generateSet(strat){
+  const freq = buildFreq();
+  const pool=Array.from({length:45},(_,i)=>i+1);
+  let result=[];
+  if(strat===0){result=randFrom(pool,6);}
+  else if(strat===1){
+    const lp=Object.entries(POPULARITY).filter(([n,p])=>p<65).sort((a,b)=>a[1]-b[1]).map(e=>parseInt(e[0])).slice(0,25);
+    result=randFrom(lp,6);
+  }
+  else if(strat===2){
+    const hp=Object.entries(freq).sort((a,b)=>b[1]-a[1]).map(e=>parseInt(e[0])).slice(0,20);
+    result=randFrom(hp,6);
+  }
+  else if(strat===3){
+    const cp=Object.entries(freq).sort((a,b)=>a[1]-b[1]).map(e=>parseInt(e[0])).slice(0,20);
+    result=randFrom(cp,6);
+  }
+  else if(strat===4){
+    result=randFrom(pool,6);result.sort((a,b)=>a-b);
+    let hc=result.some((n,i)=>i<result.length-1&&result[i+1]-n===1);
+    if(!hc){const base=Math.floor(Math.random()*43)+1;const rest=pool.filter(n=>n!==base&&n!==base+1);const extra=randFrom(rest,4);result=[base,base+1,...extra];}
+    result.sort((a,b)=>a-b);
+  }
+  else if(strat===5){
+    const lp=Object.entries(POPULARITY).filter(([n,p])=>p<70).sort((a,b)=>a[1]-b[1]).map(e=>parseInt(e[0])).slice(0,30);
+    result=randFrom(lp,6);result.sort((a,b)=>a-b);
+    const odds=result.filter(n=>n%2!==0).length;
+    if(odds===0||odds===6)return generateSet(strat);
+    let hc=result.some((n,i)=>i<result.length-1&&result[i+1]-n===1);
+    if(!hc){result[result.length-1]=result[result.length-2]+1;if(result[result.length-1]>45)result[result.length-1]=result[result.length-2]-1;result=[...new Set(result)].slice(0,6).sort((a,b)=>a-b);}
+  }
+  return[...new Set(result)].sort((a,b)=>a-b).slice(0,6);
+}
+
+function generateNumbers(){
+  const count=parseInt(document.getElementById('gameCount').value);
+  const names=['랜덤 기본','A: 인기번호 회피','B: 핫번호 (실제통계)','C: 콜드번호 (실제통계)','D: 연속포함','종합 혼합'];
+  const total=getTotalDrawCount();
+  let html=`<div class="card"><div class="card-title"><span>&#127922;</span>${names[currentStrat]} 생성 결과 (${count}게임) <span style="font-size:10px;color:var(--muted);font-weight:400">기준: ${total}회차</span></div>`;
+  for(let i=0;i<count;i++){
+    const set=generateSet(currentStrat);
+    const sum=set.reduce((a,b)=>a+b,0);
+    const hc=set.some((n,j)=>j<set.length-1&&set[j+1]-n===1);
+    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(set)}<span style="margin-left:auto;font-size:10px;color:var(--muted)">합:${sum}${hc?' &#128279;':''}</span></div>`;
+  }
+  html+=`<div class="divider"></div><button class="btn btn-gold btn-sm" onclick="generateNumbers()" style="margin-top:0">&#128260; 재생성</button></div>`;
+  document.getElementById('generatedNums').innerHTML=html;
+}
+
+// ══════════════════════════════════════════════
+// 유틸
+// ══════════════════════════════════════════════
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ══════════════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════════════
+async function init() {
+  setSyncStatus('loading', '데이터 로딩 중...');
+  initHeatmap();
+  initWheelNums();
+  showHotCold('hot');
+  renderDataStats();
+  renderRecentDraws();
+
+  const meta = loadMeta();
+  const estimated = estimateLatestDraw();
+  const lastFetched = meta.lastFetchedDraw || BASE_LAST_DRAW;
+
+  if (lastFetched < estimated) {
+    const gap = estimated - lastFetched;
+    setSyncStatus('err', `${gap}개 회차 미업데이트`);
+    setUpdateStatus(`&#9888; 최신 ${gap}개 회차가 업데이트되지 않았습니다. "최신 회차 가져오기"를 클릭하세요.`);
+  } else if (meta.lastUpdated) {
+    const updated = new Date(meta.lastUpdated).toLocaleDateString('ko-KR');
+    setSyncStatus('live', `최신 데이터 (${updated})`);
+    setUpdateStatus(`&#9989; ${getTotalDrawCount()}회차 데이터 로드 완료`);
+  } else {
+    setSyncStatus('err', `기본 ${BASE_LAST_DRAW}회차 데이터`);
+    setUpdateStatus(`&#9888; 기본 ${BASE_LAST_DRAW}회차 데이터 사용 중. 업데이트를 권장합니다.`);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
