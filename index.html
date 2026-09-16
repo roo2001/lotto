@@ -170,7 +170,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 
 <!-- ───── 탭1: 스마트 생성 ───── -->
 <div class="panel" id="p1">
-  <div class="alert alert-purple"><span>🧠</span><span><strong>패턴 스코어 시스템:</strong> 역대 1~1238회차 통계 기반으로 5가지 조건을 점수화합니다. 높은 점수 = 통계적으로 "평범한" 조합. 당첨 확률 자체는 동일합니다.</span></div>
+  <div class="alert alert-purple"><span>🧠</span><span><strong>패턴 스코어 시스템:</strong> 역대 전체 당첨 통계 기반으로 5가지 조건을 점수화합니다. 높은 점수 = 통계적으로 "평범한" 조합. 당첨 확률 자체는 동일합니다.</span></div>
   <div class="card">
     <div class="card-title">⚙️ 생성 설정</div>
     <div style="margin-bottom:10px">
@@ -763,7 +763,7 @@ function generateAvoidanceSet(){
   sets.forEach((s,i)=>{
     const sc=s.score;
     const cls=getScoreClass(sc);
-    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(s.nums,true)}<span style="margin-left:auto;font-size:10px;color:${sc>=70?'var(--green)':sc>=50?'var(--warn)':'var(--hot)'};font-weight:700">${sc}점</span></div>`;
+    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(s.nums,true)}<span style="margin-left:auto;font-size:10px;color:${sc>=70?'var(--green)':sc>=50?'var(--warn)':'var(--hot)'};font-weight:700">${sc}점</span><button class="btn btn-sm btn-outline" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${s.nums.join(' ')}')">💾 저장</button></div>`;
   });
   html+='<div style="font-size:10px;color:var(--muted);margin-top:6px">* 인기도 낮음 + 빈도 평균 이하 + 패턴 스코어 60점 이상 | 기준: '+total+'회차</div></div>';
   document.getElementById('avoidance-result').innerHTML=html;
@@ -895,7 +895,7 @@ function generateNumbers(){
     const set=generateSet(currentStrat);
     const ps=calcPatternScore(set);
     const scoreColor=ps.score>=70?'var(--green)':ps.score>=50?'var(--warn)':'var(--hot)';
-    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(set)}<span style="margin-left:auto;font-size:10px;color:${scoreColor};font-weight:700">합:${ps.sum} ${ps.score}점</span></div>`;
+    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(set)}<span style="margin-left:auto;font-size:10px;color:${scoreColor};font-weight:700">합:${ps.sum} ${ps.score}점</span><button class="btn btn-sm btn-outline" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${set.join(' ')}')">💾 저장</button></div>`;
   }
   html+=`<div class="divider"></div><button class="btn btn-gold btn-sm" onclick="generateNumbers()" style="margin-top:0">🔄 재생성</button></div>`;
   document.getElementById('generatedNums').innerHTML=html;
@@ -1071,6 +1071,16 @@ const TICKET_KEY='lottopro_tickets';
 
 function loadTickets(){try{return JSON.parse(localStorage.getItem(TICKET_KEY)||'[]');}catch(e){return[];}}
 function saveTickets(t){localStorage.setItem(TICKET_KEY,JSON.stringify(t));}
+
+function quickSaveCombo(numsStr) {
+  const round = estimateLatestDraw() + 1;
+  const nums = numsStr.split(' ').map(Number);
+  const tickets = loadTickets();
+  tickets.push({round, nums, savedAt: new Date().toISOString(), result: null});
+  saveTickets(tickets);
+  renderTicketList();
+  alert(`제 ${round}회차 추첨용으로 저장되었습니다!\\n'당첨확인' 탭에서 확인하세요.`);
+}
 
 function saveTicket(){
   const roundEl=document.getElementById('saveRound');
