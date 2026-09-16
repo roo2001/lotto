@@ -222,57 +222,6 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
   </div>
 </div>
 
-<!-- ───── 탭3: 인기번호 회피 ───── -->
-<div class="panel" id="p3">
-  <div class="alert alert-info"><span>💡</span><span><strong>전략 A 원리:</strong> 당첨 시 분배 인원 감소 → 상금 독점 가능성 ↑. 인기 번호 회피 시 같은 등수라도 혼자 받을 확률이 높아집니다.</span></div>
-  <div class="card">
-    <div class="card-title">🔥 번호별 인기도 히트맵</div>
-    <div id="heatmapDataInfo" style="font-size:10px;color:var(--muted);margin-bottom:5px"></div>
-    <div class="heatmap-grid" id="heatmap"></div>
-    <div style="display:flex;gap:10px;margin-top:8px;justify-content:center;flex-wrap:wrap">
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#ff4d6d;border-radius:3px"></div>매우 인기 (회피)</div>
-      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#4d9fff;border-radius:3px"></div>비인기 (추천)</div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">📌 인기 번호 쏠림 이유</div>
-    <div class="row"><span style="font-size:12px">📅 생일 기반 (1~31번)</span><span style="color:var(--hot);font-size:11px;font-weight:700">매우 높은 쏠림</span></div>
-    <div class="bar-wrap"><div class="bar-fill" style="width:78%;background:var(--hot)"></div></div>
-    <div class="row"><span style="font-size:12px">🍀 행운번호 (7, 11, 17, 21, 23)</span><span style="color:var(--warn);font-size:11px;font-weight:700">높음</span></div>
-    <div class="bar-wrap"><div class="bar-fill" style="width:65%;background:var(--warn)"></div></div>
-    <div class="row"><span style="font-size:12px">🔵 32~45번 구간</span><span style="color:var(--cold);font-size:11px;font-weight:700">낮음 (추천)</span></div>
-    <div class="bar-wrap"><div class="bar-fill" style="width:28%;background:var(--cold)"></div></div>
-    <div class="divider"></div>
-    <button class="btn btn-green" onclick="generateAvoidanceSet()">🎯 인기번호 회피 세트 생성 (패턴 스코어 적용)</button>
-    <div id="avoidance-result"></div>
-  </div>
-</div>
-
-<!-- ───── 탭4: 커버링 휠 ───── -->
-<div class="panel" id="p4">
-  <div class="alert alert-green"><span>🎯</span><span><strong>커버링 휠 원리:</strong> N개 번호 중 6개가 당첨번호와 일치하면 당첨 게임이 반드시 포함됩니다.</span></div>
-  <div class="card">
-    <div class="card-title">🔢 번호 선택 (6~10개)</div>
-    <div class="num-input-row" id="wheelNums"></div>
-    <div style="margin-top:6px;font-size:11px;color:var(--muted)">
-      선택: <span id="wheelSelected" style="color:var(--accent2);font-weight:700">없음</span> | 조합: <span id="wheelCombCount" style="color:var(--gold);font-weight:700">0</span>게임
-    </div>
-    <button class="btn" onclick="calcWheel()">📐 커버링 휠 계산</button>
-  </div>
-  <div id="wheelResult"></div>
-  <div class="card">
-    <div class="card-title">📊 N개 선택 시 게임 수 비교</div>
-    <table class="ev-table">
-      <tr><th>선택</th><th>게임 수</th><th>비용</th><th>커버율</th></tr>
-      <tr><td>6개</td><td>1</td><td>1,000원</td><td class="hl">기본</td></tr>
-      <tr><td>7개</td><td>7</td><td>7,000원</td><td class="hl">7배</td></tr>
-      <tr><td>8개</td><td>28</td><td>28,000원</td><td class="hl">28배</td></tr>
-      <tr><td>9개</td><td>84</td><td>84,000원</td><td class="hl">84배</td></tr>
-      <tr><td>10개</td><td>210</td><td>210,000원</td><td class="hl">210배</td></tr>
-    </table>
-  </div>
-</div>
-
 <!-- ───── 탭3: 당첨확인 ───── -->
 <div class="panel" id="p3">
   <div class="alert alert-purple"><span>🏆</span><span><strong>당첨 결과 추적기:</strong> 회차별 번호를 저장하면 추첨 후 자동으로 당첨 결과를 조회합니다.</span></div>
