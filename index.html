@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>로또 Pro 분석기 v2 — 패턴 스코어 시스템</title>
+<title>로또 Pro 분석기 v2.1 — 패턴 스코어 + 당첨 추적</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 :root{
@@ -89,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 .alert-warn{background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.3);color:#ffcc44;}
 .alert-info{background:rgba(0,229,204,.07);border:1px solid rgba(0,229,204,.2);color:#44ddbb;}
 .alert-green{background:rgba(0,204,136,.07);border:1px solid rgba(0,204,136,.2);color:#44cc99;}
-.alert-purple{background:rgba(192,132,252,.07);border:1px solid rgba(192,132,252,.3);color:#d4a8fc;}
+.alert-purple{background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.3);color:var(--purple);}
 .divider{height:1px;background:var(--border);margin:11px 0;}
 .update-card{background:linear-gradient(135deg,rgba(124,108,255,.08),rgba(0,229,204,.05));border:1px solid var(--accent);border-radius:14px;padding:13px;margin-bottom:13px;}
 .draw-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;margin:4px 0;font-size:11px;}
@@ -109,21 +109,22 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 
 <div class="header">
   <div class="logo">로또<span>Pro</span></div>
-  <div class="v-badge">v2.0</div>
+  <div class="v-badge">v2.1</div>
   <div class="sync-status">
     <div class="sync-dot" id="syncDot"></div>
     <span id="syncText" style="color:var(--muted)">초기화 중...</span>
   </div>
 </div>
 
-<div class="tabs">
-  <button class="tab active" onclick="switchTab(0)">📊 확률 진실</button>
-  <button class="tab" onclick="switchTab(1)">🧠 스마트 생성</button>
-  <button class="tab" onclick="switchTab(2)">🔍 조합 검증</button>
-  <button class="tab" onclick="switchTab(3)">🔥 인기번호 회피</button>
-  <button class="tab" onclick="switchTab(4)">🎯 커버링 휠</button>
-  <button class="tab" onclick="switchTab(5)">📈 핫/콜드</button>
-  <button class="tab" onclick="switchTab(6)">🔄 업데이트</button>
+<div class="tabs" id="mainTabs">
+  <button class="tab active" onclick="switchTab(0)">📊 확률</button>
+  <button class="tab" onclick="switchTab(1)">🧠 생성</button>
+  <button class="tab" onclick="switchTab(2)">🔍 검증</button>
+  <button class="tab" onclick="switchTab(3)">🏆 당첨확인</button>
+  <button class="tab" onclick="switchTab(4)">🔥 인기회피</button>
+  <button class="tab" onclick="switchTab(5)">🎯 커버링</button>
+  <button class="tab" onclick="switchTab(6)">📈 핫/콜드</button>
+  <button class="tab" onclick="switchTab(7)">🔄 업데이트</button>
 </div>
 
 <!-- ───── 탭0: 확률 진실 ───── -->
@@ -272,8 +273,90 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
   </div>
 </div>
 
-<!-- ───── 탭5: 핫/콜드 ───── -->
+<!-- ───── 탭3: 당첨확인 ───── -->
+<div class="panel" id="p3">
+  <div class="alert alert-purple"><span>🏆</span><span><strong>당첨 결과 추적기:</strong> 회차별 번호를 저장하면 추첨 후 자동으로 당첨 결과를 조회합니다.</span></div>
+  <div class="card">
+    <div class="card-title">🎰 번호 저장 (회차 지정)</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <div>
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">대상 회차</label>
+        <input type="number" id="saveRound" placeholder="1240" min="1" style="width:100px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:13px">
+      </div>
+      <div style="flex:1;min-width:160px">
+        <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:3px">번호 6개 (공백 구분)</label>
+        <input type="text" id="saveNums" placeholder="3 15 22 33 40 44" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:13px">
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="saveTicket()">💾 저장</button>
+      <button class="btn btn-sm btn-green" onclick="checkAllResults()">🔍 전체 당첨 확인</button>
+      <button class="btn btn-sm" onclick="clearTickets()" style="background:linear-gradient(135deg,var(--hot),#aa0033)">🗑 전체 삭제</button>
+    </div>
+    <div id="saveTicketMsg" style="margin-top:7px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📋 저장된 번호 목록</div>
+    <div id="ticketList"><div style="text-align:center;color:var(--muted);padding:16px;font-size:12px">저장된 번호가 없습니다.</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">📊 당첨 통계</div>
+    <div id="ticketStats"><div style="color:var(--muted);font-size:12px">저장된 번호가 없습니다.</div></div>
+  </div>
+</div>
+
+<!-- ───── 탭4: 인기번호 회피 (구 탭3) ───── -->
+<div class="panel" id="p4">
+  <div class="alert alert-info"><span>💡</span><span><strong>전략 A 원리:</strong> 당첨 시 분배 인원 감소 → 상금 독점 가능성 ↑.</span></div>
+  <div class="card">
+    <div class="card-title">🔥 번호별 인기도 히트맵</div>
+    <div id="heatmapDataInfo" style="font-size:10px;color:var(--muted);margin-bottom:5px"></div>
+    <div class="heatmap-grid" id="heatmap"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;justify-content:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#ff4d6d;border-radius:3px"></div>매우 인기 (회피)</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:11px"><div style="width:12px;height:12px;background:#4d9fff;border-radius:3px"></div>비인기 (추천)</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📌 인기 번호 쏠림 이유</div>
+    <div class="row"><span style="font-size:12px">📅 생일 기반 (1~31번)</span><span style="color:var(--hot);font-size:11px;font-weight:700">매우 높은 쏠림</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:78%;background:var(--hot)"></div></div>
+    <div class="row"><span style="font-size:12px">🍀 행운번호 (7, 11, 17, 21, 23)</span><span style="color:var(--warn);font-size:11px;font-weight:700">높음</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:65%;background:var(--warn)"></div></div>
+    <div class="row"><span style="font-size:12px">🔵 32~45번 구간</span><span style="color:var(--cold);font-size:11px;font-weight:700">낮음 (추천)</span></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:28%;background:var(--cold)"></div></div>
+    <div class="divider"></div>
+    <button class="btn btn-green" onclick="generateAvoidanceSet()">🎯 인기번호 회피 세트 생성</button>
+    <div id="avoidance-result"></div>
+  </div>
+</div>
+
+<!-- ───── 탭5: 커버링 휠 (구 탭4) ───── -->
 <div class="panel" id="p5">
+  <div class="alert alert-green"><span>🎯</span><span><strong>커버링 휠 원리:</strong> N개 번호 중 6개가 당첨번호와 일치하면 당첨 게임이 반드시 포함됩니다.</span></div>
+  <div class="card">
+    <div class="card-title">🔢 번호 선택 (6~10개)</div>
+    <div class="num-input-row" id="wheelNums"></div>
+    <div style="margin-top:6px;font-size:11px;color:var(--muted)">선택: <span id="wheelSelected" style="color:var(--accent2);font-weight:700">없음</span> | 조합: <span id="wheelCombCount" style="color:var(--gold);font-weight:700">0</span>게임</div>
+    <button class="btn" onclick="calcWheel()">📐 커버링 휠 계산</button>
+  </div>
+  <div id="wheelResult"></div>
+  <div class="card">
+    <div class="card-title">📊 N개 선택 시 게임 수 비교</div>
+    <table class="ev-table">
+      <tr><th>선택</th><th>게임 수</th><th>비용</th><th>커버율</th></tr>
+      <tr><td>6개</td><td>1</td><td>1,000원</td><td class="hl">기본</td></tr>
+      <tr><td>7개</td><td>7</td><td>7,000원</td><td class="hl">7배</td></tr>
+      <tr><td>8개</td><td>28</td><td>28,000원</td><td class="hl">28배</td></tr>
+      <tr><td>9개</td><td>84</td><td>84,000원</td><td class="hl">84배</td></tr>
+      <tr><td>10개</td><td>210</td><td>210,000원</td><td class="hl">210배</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ───── 탭6: 핫/콜드 (구 탭5) ───── -->
+<div class="panel" id="p6">
+
   <div class="alert alert-warn"><span>⚠️</span><span><strong>갬블러의 오류 주의:</strong> 각 회차는 완전 독립 사건. 핫/콜드 번호는 과거 빈도 통계이며, 미래를 예측하지 않습니다.</span></div>
   <div class="card">
     <div class="card-title">📊 출현 빈도 분석 <span id="freqDataInfo" style="font-size:10px;color:var(--muted);font-weight:400;margin-left:5px"></span></div>
@@ -296,8 +379,9 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
   </div>
 </div>
 
-<!-- ───── 탭6: 업데이트 ───── -->
-<div class="panel" id="p6">
+<!-- ───── 탭7: 업데이트 (구 탭6) ───── -->
+<div class="panel" id="p7">
+
   <div class="update-card">
     <div class="card-title">🔄 당첨번호 자동 업데이트</div>
     <div id="updateStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px">상태 확인 중...</div>
@@ -435,11 +519,29 @@ function getScoreLabel(score){
 // 동행복권 API
 // ═══════════════════════════════════════════
 const LOTTO_API='https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=';
-const PROXY='https://api.allorigins.win/raw?url=';
+// 다중 CORS 프록시 — 순서대로 시도 (하나 실패하면 다음으로)
+const PROXIES=[
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://api.codetabs.com/v1/proxy?quest='
+];
 async function fetchDraw(drwNo){
   const url=LOTTO_API+drwNo;
-  try{const r=await fetch(url,{signal:AbortSignal.timeout(5000)});if(r.ok)return await r.json();}catch(e){}
-  try{const r=await fetch(PROXY+encodeURIComponent(url),{signal:AbortSignal.timeout(10000)});if(r.ok)return await r.json();}catch(e){}
+  // 1차: 직접 호출
+  try{
+    const r=await fetch(url,{signal:AbortSignal.timeout(4000)});
+    if(r.ok){const d=await r.json();if(d&&d.returnValue)return d;}
+  }catch(e){}
+  // 2차: 프록시 순차 시도
+  for(const proxy of PROXIES){
+    try{
+      const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(8000)});
+      if(!r.ok)continue;
+      const text=await r.text();
+      const d=JSON.parse(text);
+      if(d&&d.returnValue)return d;
+    }catch(e){continue;}
+  }
   return null;
 }
 function parseDraw(data){
@@ -890,6 +992,7 @@ async function init(){
   renderRecentDraws();
   renderSumDistChart();
   setStrat(0); // 기본 전략 설명 표시
+  renderTicketList(); // 당첨확인 탭 초기화
 
   const meta=loadMeta();
   const estimated=estimateLatestDraw();
@@ -908,6 +1011,125 @@ async function init(){
 }
 
 init();
+// ═══════════════════════════════════════════
+// 탭 전환 (8개 탭: p0~p7)
+// ═══════════════════════════════════════════
+function switchTab(n){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('#mainTabs .tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+}
+
+// ═══════════════════════════════════════════
+// 당첨 결과 추적기 (로컬스토리지)
+// ═══════════════════════════════════════════
+const TICKET_KEY='lottopro_tickets';
+
+function loadTickets(){try{return JSON.parse(localStorage.getItem(TICKET_KEY)||'[]');}catch(e){return[];}}
+function saveTickets(t){localStorage.setItem(TICKET_KEY,JSON.stringify(t));}
+
+function saveTicket(){
+  const roundEl=document.getElementById('saveRound');
+  const numsEl=document.getElementById('saveNums');
+  const msg=document.getElementById('saveTicketMsg');
+  const round=parseInt(roundEl.value);
+  const parts=numsEl.value.trim().split(/\s+/).map(Number);
+  if(!round||round<1){msg.innerHTML='<div class="alert alert-warn" style="margin-top:4px"><span>⚠️</span><span>회차를 입력하세요.</span></div>';return;}
+  if(parts.length!==6||parts.some(n=>isNaN(n)||n<1||n>45)){msg.innerHTML='<div class="alert alert-warn" style="margin-top:4px"><span>⚠️</span><span>번호 6개를 1~45 사이로 입력하세요.</span></div>';return;}
+  const nums=parts.sort((a,b)=>a-b);
+  const tickets=loadTickets();
+  tickets.push({round,nums,savedAt:new Date().toISOString(),result:null});
+  saveTickets(tickets);
+  msg.innerHTML='<div class="alert alert-green" style="margin-top:4px"><span>✅</span><span>저장 완료! 추첨 후 "전체 당첨 확인"을 클릭하세요.</span></div>';
+  roundEl.value='';numsEl.value='';
+  renderTicketList();
+}
+
+function clearTickets(){
+  if(!confirm('저장된 모든 번호를 삭제합니까?'))return;
+  saveTickets([]);renderTicketList();renderTicketStats();
+}
+
+function gradeResult(matches,bonusMatch){
+  if(matches===6)return{grade:'1등',color:'var(--gold)',icon:'🥇'};
+  if(matches===5&&bonusMatch)return{grade:'2등',color:'#ff6666',icon:'🥈'};
+  if(matches===5)return{grade:'3등',color:'#ff9944',icon:'🥉'};
+  if(matches===4)return{grade:'4등',color:'var(--accent)',icon:'🎯'};
+  if(matches===3)return{grade:'5등',color:'var(--accent2)',icon:'🎉'};
+  return{grade:'낙첨',color:'var(--muted)',icon:'—'};
+}
+
+async function checkAllResults(){
+  const tickets=loadTickets();
+  if(tickets.length===0){document.getElementById('saveTicketMsg').innerHTML='<div class="alert alert-warn" style="margin-top:4px"><span>⚠️</span><span>저장된 번호가 없습니다.</span></div>';return;}
+  const btn=document.querySelector('[onclick="checkAllResults()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 조회 중...';}
+  const draws=loadDraws();
+  for(let i=0;i<tickets.length;i++){
+    const t=tickets[i];
+    let drawData=draws[t.round];
+    if(!drawData){
+      // API에서 해당 회차 조회 시도
+      const raw=await fetchDraw(t.round);
+      const parsed=parseDraw(raw);
+      if(parsed){drawData=parsed;draws[t.round]=parsed;saveDraws(draws);}
+    }
+    if(drawData){
+      const winNums=drawData.nums;
+      const bonus=drawData.bonus;
+      const matches=t.nums.filter(n=>winNums.includes(n)).length;
+      const bonusMatch=t.nums.includes(bonus);
+      const res=gradeResult(matches,bonusMatch);
+      tickets[i].result={...res,matches,bonus,winNums,winDate:drawData.date};
+    }else{
+      tickets[i].result={grade:'조회 실패',color:'var(--hot)',icon:'❓',matches:0,winNums:[]};
+    }
+    await sleep(300);
+  }
+  saveTickets(tickets);
+  if(btn){btn.disabled=false;btn.textContent='🔍 전체 당첨 확인';}
+  renderTicketList();renderTicketStats();
+}
+
+function renderTicketList(){
+  const tickets=loadTickets();
+  const el=document.getElementById('ticketList');if(!el)return;
+  if(tickets.length===0){el.innerHTML='<div style="text-align:center;color:var(--muted);padding:16px;font-size:12px">저장된 번호가 없습니다.</div>';return;}
+  const sorted=[...tickets].sort((a,b)=>b.round-a.round);
+  el.innerHTML=sorted.map((t,i)=>{
+    const origIdx=tickets.indexOf(t);
+    const r=t.result;
+    const resHtml=r
+      ? `<span style="color:${r.color};font-weight:700;font-size:11px">${r.icon} ${r.grade}</span>${r.winNums&&r.winNums.length?` <span style="font-size:10px;color:var(--muted)">(${r.matches}개 일치)</span>`:''}`
+      : '<span style="color:var(--muted);font-size:10px">미확인 — 추첨 후 확인버튼 클릭</span>';
+    return`<div class="draw-item" style="margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">제${t.round}회</span>
+        ${resHtml}
+        <button onclick="deleteTicket(${origIdx})" style="background:none;border:none;color:var(--hot);cursor:pointer;font-size:12px;padding:2px 5px">✕</button>
+      </div>
+      <div>${renderBalls(t.nums,true)}</div>
+      ${r&&r.winNums&&r.winNums.length?`<div style="margin-top:4px;font-size:10px;color:var(--muted)">당첨번호: ${renderBalls(r.winNums,true)}<span style="font-size:10px;color:var(--accent)">+${renderBall(r.bonus,true)}</span></div>`:''}
+    </div>`;
+  }).join('');
+  renderTicketStats();
+}
+
+function deleteTicket(idx){
+  const tickets=loadTickets();
+  tickets.splice(idx,1);saveTickets(tickets);renderTicketList();
+}
+
+function renderTicketStats(){
+  const tickets=loadTickets();
+  const el=document.getElementById('ticketStats');if(!el)return;
+  const checked=tickets.filter(t=>t.result&&t.result.winNums&&t.result.winNums.length>0);
+  if(checked.length===0){el.innerHTML='<div style="color:var(--muted);font-size:12px">당첨 확인된 데이터가 없습니다.</div>';return;}
+  const counts={};
+  checked.forEach(t=>{const g=t.result.grade;counts[g]=(counts[g]||0)+1;});
+  const rows=Object.entries(counts).map(([g,c])=>`<div class="row"><span style="font-size:12px">${g}</span><span style="font-weight:700;color:var(--accent)">${c}회</span></div>`).join('');
+  el.innerHTML=`<div class="row"><span style="font-size:12px">확인 완료</span><span style="font-weight:700;color:var(--accent2)">${checked.length}/${tickets.length}게임</span></div>${rows}`;
+}
+
 </script>
 </body>
 </html>
