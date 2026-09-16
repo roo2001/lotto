@@ -760,11 +760,18 @@ function generateAvoidanceSet(){
   }
 
   let html='<div style="margin-top:11px">';
+  window.lastGeneratedCombos = [];
   sets.forEach((s,i)=>{
+    window.lastGeneratedCombos.push(s.nums);
     const sc=s.score;
     const cls=getScoreClass(sc);
-    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(s.nums,true)}<span style="margin-left:auto;font-size:10px;color:${sc>=70?'var(--green)':sc>=50?'var(--warn)':'var(--hot)'};font-weight:700">${sc}점</span><button class="btn btn-sm btn-outline" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${s.nums.join(' ')}')">💾 저장</button></div>`;
+    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(s.nums,true)}<span style="margin-left:auto;font-size:10px;color:${sc>=70?'var(--green)':sc>=50?'var(--warn)':'var(--hot)'};font-weight:700">${sc}점</span><button class="btn btn-sm btn-outline save-btn" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${s.nums.join(' ')}', this)">💾 저장</button></div>`;
   });
+  html+=`<div class="divider"></div>
+         <div style="display:flex;gap:5px;margin-top:0">
+           <button class="btn btn-gold btn-sm" onclick="generateAvoidanceSet()" style="flex:1">🔄 재생성</button>
+           <button class="btn btn-purple btn-sm" onclick="bulkSaveCombos()" style="flex:1">💾 전체 일괄 저장</button>
+         </div>`;
   html+='<div style="font-size:10px;color:var(--muted);margin-top:6px">* 인기도 낮음 + 빈도 평균 이하 + 패턴 스코어 60점 이상 | 기준: '+total+'회차</div></div>';
   document.getElementById('avoidance-result').innerHTML=html;
 }
@@ -891,13 +898,19 @@ function generateNumbers(){
   const names=['랜덤 기본','인기번호 회피','핫번호','콜드번호','연속포함','🧠 스마트 생성'];
   const total=getTotalDrawCount();
   let html=`<div class="card"><div class="card-title"><span>🎰</span>${names[currentStrat]} 결과 (${count}게임) <span style="font-size:10px;color:var(--muted);font-weight:400">기준: ${total}회차</span></div>`;
+  window.lastGeneratedCombos = [];
   for(let i=0;i<count;i++){
     const set=generateSet(currentStrat);
+    window.lastGeneratedCombos.push(set);
     const ps=calcPatternScore(set);
     const scoreColor=ps.score>=70?'var(--green)':ps.score>=50?'var(--warn)':'var(--hot)';
-    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(set)}<span style="margin-left:auto;font-size:10px;color:${scoreColor};font-weight:700">합:${ps.sum} ${ps.score}점</span><button class="btn btn-sm btn-outline" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${set.join(' ')}')">💾 저장</button></div>`;
+    html+=`<div class="wheel-combo"><span class="combo-num">${i+1}번</span>${renderBalls(set)}<span style="margin-left:auto;font-size:10px;color:${scoreColor};font-weight:700">합:${ps.sum} ${ps.score}점</span><button class="btn btn-sm btn-outline save-btn" style="padding:2px 6px;margin-left:8px;font-size:10px" onclick="quickSaveCombo('${set.join(' ')}', this)">💾 저장</button></div>`;
   }
-  html+=`<div class="divider"></div><button class="btn btn-gold btn-sm" onclick="generateNumbers()" style="margin-top:0">🔄 재생성</button></div>`;
+  html+=`<div class="divider"></div>
+         <div style="display:flex;gap:5px;margin-top:0">
+           <button class="btn btn-gold btn-sm" onclick="generateNumbers()" style="flex:1">🔄 재생성</button>
+           <button class="btn btn-purple btn-sm" onclick="bulkSaveCombos()" style="flex:1">💾 전체 일괄 저장</button>
+         </div></div>`;
   document.getElementById('generatedNums').innerHTML=html;
 }
 
@@ -1072,14 +1085,42 @@ const TICKET_KEY='lottopro_tickets';
 function loadTickets(){try{return JSON.parse(localStorage.getItem(TICKET_KEY)||'[]');}catch(e){return[];}}
 function saveTickets(t){localStorage.setItem(TICKET_KEY,JSON.stringify(t));}
 
-function quickSaveCombo(numsStr) {
+function quickSaveCombo(numsStr, btn) {
   const round = estimateLatestDraw() + 1;
   const nums = numsStr.split(' ').map(Number);
   const tickets = loadTickets();
   tickets.push({round, nums, savedAt: new Date().toISOString(), result: null});
   saveTickets(tickets);
   renderTicketList();
-  alert(`제 ${round}회차 추첨용으로 저장되었습니다!\\n'당첨확인' 탭에서 확인하세요.`);
+  if (btn) {
+    btn.textContent = '✅ 저장됨';
+    btn.disabled = true;
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+  }
+}
+
+function bulkSaveCombos() {
+  if (!window.lastGeneratedCombos || window.lastGeneratedCombos.length === 0) {
+    return;
+  }
+  const round = estimateLatestDraw() + 1;
+  const tickets = loadTickets();
+  const now = new Date().toISOString();
+  window.lastGeneratedCombos.forEach(nums => {
+    tickets.push({round, nums, savedAt: now, result: null});
+  });
+  saveTickets(tickets);
+  renderTicketList();
+  
+  document.querySelectorAll('.save-btn').forEach(btn => {
+    if (!btn.disabled) {
+      btn.textContent = '✅ 일괄저장됨';
+      btn.disabled = true;
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+    }
+  });
 }
 
 function saveTicket(){
