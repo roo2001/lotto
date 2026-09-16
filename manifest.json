@@ -1,0 +1,26 @@
+{
+  "name": "로또Pro 분석기",
+  "short_name": "LottoPro",
+  "description": "로또 6/45 심층 분석 앱 — 패턴 스코어, Gap 분석, 트렌드, 페어링",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0a0a14",
+  "theme_color": "#7c6cff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "utilities"],
+  "lang": "ko"
+}

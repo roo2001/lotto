@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>로또 Pro 분석기 v3.0 — 심층분석 + 당첨 추적</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7c6cff">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 :root{
@@ -996,6 +999,30 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // ═══════════════════════════════════════════
 async function init(){
   setSyncStatus('loading','데이터 로딩 중...');
+  try {
+    const res = await fetch('./draws.json?t=' + new Date().getTime());
+    if (res.ok) {
+      const data = await res.json();
+      const localDraws = loadDraws();
+      let updated = false;
+      for (const drwNo in data.draws) {
+        if (!localDraws[drwNo]) {
+          localDraws[drwNo] = data.draws[drwNo];
+          updated = true;
+        }
+      }
+      if (updated) {
+        saveDraws(localDraws);
+        const meta = loadMeta();
+        meta.lastFetchedDraw = Math.max(meta.lastFetchedDraw || 0, data.meta.latestDraw || 0);
+        meta.lastUpdated = new Date().toISOString();
+        saveMeta(meta);
+      }
+    }
+  } catch (e) {
+    console.warn('draws.json fetch failed (offline or not ready)', e);
+  }
+
   initHeatmap();
   initWheelNums();
   initValidatorNums();
@@ -1023,6 +1050,12 @@ async function init(){
 }
 
 init();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+  });
+}
 // ═══════════════════════════════════════════
 // 탭 전환 (8개 탭: p0~p7)
 // ═══════════════════════════════════════════
