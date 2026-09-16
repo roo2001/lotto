@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>로또 Pro 분석기 v2.1 — 패턴 스코어 + 당첨 추적</title>
+<title>로또 Pro 분석기 v3.0 — 심층분석 + 당첨 추적</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
 :root{
@@ -109,7 +109,7 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
 
 <div class="header">
   <div class="logo">로또<span>Pro</span></div>
-  <div class="v-badge">v2.1</div>
+  <div class="v-badge">v3.0</div>
   <div class="sync-status">
     <div class="sync-dot" id="syncDot"></div>
     <span id="syncText" style="color:var(--muted)">초기화 중...</span>
@@ -124,7 +124,8 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
   <button class="tab" onclick="switchTab(4)">🔥 인기회피</button>
   <button class="tab" onclick="switchTab(5)">🎯 커버링</button>
   <button class="tab" onclick="switchTab(6)">📈 핫/콜드</button>
-  <button class="tab" onclick="switchTab(7)">🔄 업데이트</button>
+  <button class="tab" onclick="switchTab(7)">🔬 심층분석</button>
+  <button class="tab" onclick="switchTab(8)">🔄 업데이트</button>
 </div>
 
 <!-- ───── 탭0: 확률 진실 ───── -->
@@ -328,14 +329,76 @@ body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans-seri
   </div>
 </div>
 
-<!-- ───── 탭7: 업데이트 (구 탭6) ───── -->
+<!-- ───── 탭7: 심층분석 ───── -->
 <div class="panel" id="p7">
+  <div class="alert alert-purple"><span>🔬</span><span><strong>심층 데이터 분석:</strong> 개별 회차 데이터가 있어야 작동합니다. 먼저 🔄 업데이트 탭에서 "3년치 자동 로드"를 실행하세요.</span></div>
+
+  <!-- Gap 분석 -->
+  <div class="card">
+    <div class="card-title">📏 Gap 분석 (번호 출현 간격)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">각 번호의 평균 출현 간격과 현재 미출현 기간. 간격이 평균보다 길면 "과열(오래 안 나옴)"로 표시합니다.</div>
+    <div style="display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="renderGapAnalysis('overdue')">⏰ 과열 (오래 안 나온 번호)</button>
+      <button class="btn btn-sm btn-outline" onclick="renderGapAnalysis('due')">✅ 평균 근접 (출현 예정)</button>
+      <button class="btn btn-sm btn-outline" onclick="renderGapAnalysis('hot')">🔥 연속 출현 중</button>
+    </div>
+    <div id="gapResult"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+
+  <!-- 트렌드 분석 -->
+  <div class="card">
+    <div class="card-title">📊 트렌드 분석 (최근 vs 전체)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">최근 20회차 출현 빈도를 전체 평균과 비교합니다.</div>
+    <div style="display:flex;gap:6px;margin-bottom:9px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="renderTrendAnalysis(20)">최근 20회차</button>
+      <button class="btn btn-sm btn-outline" onclick="renderTrendAnalysis(40)">최근 40회차</button>
+      <button class="btn btn-sm btn-outline" onclick="renderTrendAnalysis(60)">최근 60회차</button>
+    </div>
+    <div id="trendResult"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+
+  <!-- 페어링 분석 -->
+  <div class="card">
+    <div class="card-title">🔗 페어링 분석 (공동출현 번호 쌍)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">자주 같이 등장하는 번호 조합. 저장된 회차 데이터 기반으로 계산합니다.</div>
+    <button class="btn btn-sm" onclick="renderPairingAnalysis()">🔗 상위 15쌍 계산</button>
+    <div id="pairingResult" style="margin-top:9px"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+
+  <!-- 델타 분석 -->
+  <div class="card">
+    <div class="card-title">△ 델타 분석 (번호 간격 패턴)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">당첨번호 6개를 정렬 후 인접 번호 간 간격(Δ)의 분포. 역대 가장 빈번한 델타 패턴을 확인합니다.</div>
+    <button class="btn btn-sm" onclick="renderDeltaAnalysis()">△ 델타 분포 계산</button>
+    <div id="deltaResult" style="margin-top:9px"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+
+  <!-- 위치 분석 -->
+  <div class="card">
+    <div class="card-title">📍 위치별 번호 분석</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">6개 번호를 정렬했을 때 각 위치(1~6번째)에 자주 등장하는 번호를 분석합니다.</div>
+    <button class="btn btn-sm" onclick="renderPositionalAnalysis()">📍 위치별 분석</button>
+    <div id="positionalResult" style="margin-top:9px"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+
+  <!-- 끝자리 분석 -->
+  <div class="card">
+    <div class="card-title">🔢 끝자리(AC값) 분석</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:9px">당첨번호 끝자리(0~9) 분포와 AC값(산술 복잡도) 패턴을 분석합니다.</div>
+    <button class="btn btn-sm" onclick="renderLastDigitAnalysis()">🔢 끝자리 분포 계산</button>
+    <div id="lastDigitResult" style="margin-top:9px"><div style="color:var(--muted);font-size:12px;text-align:center;padding:12px">데이터 로드 후 분석 가능</div></div>
+  </div>
+</div>
+
+<!-- ───── 탭8: 업데이트 ───── -->
+<div class="panel" id="p8">
 
   <div class="update-card">
     <div class="card-title">🔄 당첨번호 자동 업데이트</div>
     <div id="updateStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px">상태 확인 중...</div>
     <div style="display:flex;gap:7px;flex-wrap:wrap">
       <button class="btn btn-sm btn-green" onclick="fetchLatest()" id="btnFetch">▶ 최신 회차 가져오기</button>
+      <button class="btn btn-sm" onclick="fetchRecentYears(3)" id="btnBulk" style="background:linear-gradient(135deg,var(--purple),var(--accent))">📡 3년치 자동 로드</button>
       <button class="btn btn-sm btn-outline" onclick="fetchRange()" id="btnRange">📅 누락 회차 보충</button>
       <button class="btn btn-sm btn-outline" onclick="resetData()" style="border-color:var(--hot);color:var(--hot)">⚠ 초기화</button>
     </div>
@@ -1077,6 +1140,273 @@ function renderTicketStats(){
   checked.forEach(t=>{const g=t.result.grade;counts[g]=(counts[g]||0)+1;});
   const rows=Object.entries(counts).map(([g,c])=>`<div class="row"><span style="font-size:12px">${g}</span><span style="font-weight:700;color:var(--accent)">${c}회</span></div>`).join('');
   el.innerHTML=`<div class="row"><span style="font-size:12px">확인 완료</span><span style="font-weight:700;color:var(--accent2)">${checked.length}/${tickets.length}게임</span></div>${rows}`;
+}
+
+// ═══════════════════════════════════════════
+// 탭 전환 (9개 탭: p0~p8)
+// ═══════════════════════════════════════════
+function switchTab(n){
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('#mainTabs .tab').forEach((t,i)=>t.classList.toggle('active',i===n));
+}
+
+// ═══════════════════════════════════════════
+// 3년치 자동 로드 (약 156회차)
+// ═══════════════════════════════════════════
+async function fetchRecentYears(years){
+  const btn=document.getElementById('btnBulk');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 로딩 중...';}
+  setSyncStatus('loading',`${years}년치 데이터 로드 중...`);
+  const estimated=estimateLatestDraw();
+  const weeksPerYear=52;
+  const fromDraw=Math.max(1,estimated-(years*weeksPerYear));
+  const draws=loadDraws();const meta=loadMeta();
+  let added=0,failed=0;
+  for(let drwNo=fromDraw;drwNo<=estimated;drwNo++){
+    if(draws[drwNo])continue; // 이미 있으면 스킵
+    const data=await fetchDraw(drwNo);
+    const parsed=parseDraw(data);
+    if(parsed){draws[drwNo]=parsed;added++;}
+    else{failed++;}
+    if(added%10===0&&added>0){
+      setUpdateStatus(`🔄 ${drwNo}회차 처리 중... (${added}개 저장)`);
+      saveDraws(draws); // 10개마다 중간 저장
+    }
+    await sleep(200);
+  }
+  saveDraws(draws);
+  meta.lastFetchedDraw=estimated;meta.lastUpdated=new Date().toISOString();
+  saveMeta(meta);
+  const msg=`✅ ${years}년치 로드 완료 — ${added}개 저장, ${failed}개 실패`;
+  setSyncStatus('live',msg);setUpdateStatus(msg);
+  if(btn){btn.disabled=false;btn.innerHTML=`📡 ${years}년치 자동 로드`;}
+  renderDataStats();renderRecentDraws();rebuildAllDisplays();
+}
+
+// ═══════════════════════════════════════════
+// 심층분석 공통: 저장 데이터 정렬 조회
+// ═══════════════════════════════════════════
+function getSortedDraws(){
+  const draws=loadDraws();
+  return Object.values(draws).filter(d=>d.nums&&d.nums.length===6).sort((a,b)=>a.drwNo-b.drwNo);
+}
+function noDataMsg(el){el.innerHTML='<div class="alert alert-warn" style="margin-top:4px"><span>⚠️</span><span>저장된 개별 회차 데이터가 없습니다. 업데이트 탭에서 "3년치 자동 로드"를 먼저 실행하세요.</span></div>';}
+
+// ═══════════════════════════════════════════
+// Gap 분석
+// ═══════════════════════════════════════════
+function renderGapAnalysis(mode='overdue'){
+  const el=document.getElementById('gapResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<10){noDataMsg(el);return;}
+  const total=allDraws.length;
+  // 각 번호의 마지막 출현 회차 인덱스와 출현 간격 계산
+  const lastSeen={};const gaps={};
+  for(let n=1;n<=45;n++){lastSeen[n]=-1;gaps[n]=[];}
+  allDraws.forEach((d,idx)=>{
+    d.nums.forEach(n=>{
+      if(lastSeen[n]>=0)gaps[n].push(idx-lastSeen[n]);
+      lastSeen[n]=idx;
+    });
+  });
+  const result=[];
+  for(let n=1;n<=45;n++){
+    const avgGap=gaps[n].length>0?(gaps[n].reduce((a,b)=>a+b,0)/gaps[n].length):total;
+    const currentGap=lastSeen[n]>=0?(total-1-lastSeen[n]):total;
+    const ratio=currentGap/Math.max(avgGap,1);
+    result.push({n,avgGap:avgGap.toFixed(1),currentGap,ratio:ratio.toFixed(2),lastSeen:lastSeen[n]});
+  }
+  let filtered;
+  if(mode==='overdue')filtered=result.filter(r=>r.ratio>=1.5).sort((a,b)=>b.ratio-a.ratio).slice(0,15);
+  else if(mode==='due')filtered=result.filter(r=>r.ratio>=0.8&&r.ratio<1.5).sort((a,b)=>Math.abs(1-a.ratio)-Math.abs(1-b.ratio)).slice(0,15);
+  else filtered=result.filter(r=>r.currentGap<=3).sort((a,b)=>a.currentGap-b.currentGap).slice(0,15);
+  const label={overdue:'⏰ 과열 — 오래 안 나온 번호',due:'✅ 평균 근접 — 출현 예정',hot:'🔥 연속 출현 중'};
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">${label[mode]} (${total}회차 기준)</div>`;
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px">';
+  filtered.forEach(r=>{
+    const clr=r.ratio>=2?'var(--hot)':r.ratio>=1.5?'var(--warn)':r.ratio<=0.5?'var(--green)':'var(--accent2)';
+    html+=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;min-width:80px;text-align:center">
+      ${renderBall(r.n,true)}
+      <div style="font-size:10px;color:${clr};font-weight:700;margin-top:3px">${r.currentGap}회 공백</div>
+      <div style="font-size:9px;color:var(--muted)">평균 ${r.avgGap}회</div>
+      <div style="font-size:9px;color:${clr}">${r.ratio}배</div>
+    </div>`;
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 트렌드 분석
+// ═══════════════════════════════════════════
+function renderTrendAnalysis(n=20){
+  const el=document.getElementById('trendResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<n){noDataMsg(el);return;}
+  const recent=allDraws.slice(-n);
+  const recentFreq={};for(let i=1;i<=45;i++)recentFreq[i]=0;
+  recent.forEach(d=>d.nums.forEach(num=>recentFreq[num]++));
+  const allFreq=buildFreq();
+  const totalDraws=getTotalDrawCount();
+  const result=[];
+  for(let num=1;num<=45;num++){
+    const recentRate=recentFreq[num]/n;
+    const allRate=(allFreq[num]||0)/totalDraws;
+    const ratio=allRate>0?recentRate/allRate:0;
+    result.push({num,recentFreq:recentFreq[num],recentRate:(recentRate*100).toFixed(1),allRate:(allRate*100).toFixed(1),ratio:ratio.toFixed(2)});
+  }
+  const hotNums=result.filter(r=>r.ratio>=1.5).sort((a,b)=>b.ratio-a.ratio).slice(0,10);
+  const coldNums=result.filter(r=>r.ratio<0.5).sort((a,b)=>a.ratio-b.ratio).slice(0,10);
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">최근 ${n}회차 트렌드 분석 (전체 평균 대비)</div>`;
+  html+='<div style="font-size:11px;color:var(--hot);font-weight:700;margin-bottom:5px">🔥 트렌드 HOT (전체 평균 1.5배 이상)</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:11px">';
+  hotNums.forEach(r=>{html+=`<div style="text-align:center">${renderBall(r.num,true)}<div style="font-size:9px;color:var(--hot);font-weight:700">${r.ratio}×</div></div>`;});
+  html+='</div>';
+  html+='<div style="font-size:11px;color:var(--cold);font-weight:700;margin-bottom:5px">❄️ 트렌드 COLD (전체 평균 0.5배 미만)</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:5px">';
+  coldNums.forEach(r=>{html+=`<div style="text-align:center">${renderBall(r.num,true)}<div style="font-size:9px;color:var(--cold);font-weight:700">${r.ratio}×</div></div>`;});
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 페어링 분석
+// ═══════════════════════════════════════════
+function renderPairingAnalysis(){
+  const el=document.getElementById('pairingResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<10){noDataMsg(el);return;}
+  const pairCount={};
+  allDraws.forEach(d=>{
+    const nums=d.nums.sort((a,b)=>a-b);
+    for(let i=0;i<nums.length;i++)for(let j=i+1;j<nums.length;j++){
+      const key=`${nums[i]}-${nums[j]}`;pairCount[key]=(pairCount[key]||0)+1;
+    }
+  });
+  const topPairs=Object.entries(pairCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px">공동출현 상위 15쌍 (${allDraws.length}회차 기준)</div>`;
+  topPairs.forEach(([pair,cnt],i)=>{
+    const [a,b]=pair.split('-').map(Number);
+    const pct=((cnt/allDraws.length)*100).toFixed(1);
+    const barW=Math.round((cnt/topPairs[0][1])*100);
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+      <span style="font-size:10px;color:var(--muted);width:16px">${i+1}</span>
+      ${renderBall(a,true)}${renderBall(b,true)}
+      <div style="flex:1"><div style="background:var(--border);border-radius:4px;height:6px"><div style="background:var(--accent);width:${barW}%;height:6px;border-radius:4px"></div></div></div>
+      <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent2)">${cnt}회(${pct}%)</span>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 델타 분석 (번호 간격 패턴)
+// ═══════════════════════════════════════════
+function renderDeltaAnalysis(){
+  const el=document.getElementById('deltaResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<10){noDataMsg(el);return;}
+  const deltaFreq={};
+  let minDelta=Infinity,avgDeltaSum=0,count=0;
+  allDraws.forEach(d=>{
+    const s=d.nums.sort((a,b)=>a-b);
+    for(let i=0;i<s.length-1;i++){
+      const delta=s[i+1]-s[i];
+      deltaFreq[delta]=(deltaFreq[delta]||0)+1;
+      avgDeltaSum+=delta;count++;
+      if(delta<minDelta)minDelta=delta;
+    }
+  });
+  const avgDelta=(avgDeltaSum/count).toFixed(2);
+  const topDeltas=Object.entries(deltaFreq).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const maxCnt=topDeltas[0][1];
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px">인접 번호 간격(Δ) 빈도 분포 (평균 Δ: ${avgDelta})</div>`;
+  topDeltas.forEach(([delta,cnt])=>{
+    const barW=Math.round((cnt/maxCnt)*100);
+    const clr=parseInt(delta)<=3?'var(--hot)':parseInt(delta)<=7?'var(--warn)':'var(--cold)';
+    html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${clr};width:28px">Δ${delta}</span>
+      <div style="flex:1"><div style="background:var(--border);border-radius:4px;height:8px"><div style="background:${clr};width:${barW}%;height:8px;border-radius:4px"></div></div></div>
+      <span style="font-size:10px;color:var(--muted);width:40px;text-align:right">${cnt}회</span>
+    </div>`;
+  });
+  html+='<div style="font-size:10px;color:var(--muted);margin-top:7px">Δ가 작을수록 번호들이 밀집, Δ가 크면 번호 분산</div>';
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 위치별 번호 분석
+// ═══════════════════════════════════════════
+function renderPositionalAnalysis(){
+  const el=document.getElementById('positionalResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<10){noDataMsg(el);return;}
+  const pos=[{},{},{},{},{},{}];
+  allDraws.forEach(d=>{
+    const s=d.nums.sort((a,b)=>a-b);
+    s.forEach((num,i)=>{pos[i][num]=(pos[i][num]||0)+1;});
+  });
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:9px">위치별 상위 5 번호 (${allDraws.length}회차 기준)</div>`;
+  pos.forEach((p,i)=>{
+    const top5=Object.entries(p).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    html+=`<div style="margin-bottom:9px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${i+1}번째 자리 (${['1~10','8~20','15~28','22~35','28~42','33~45'][i]} 주요 범위)</div>
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">`;
+    top5.forEach(([num,cnt])=>{
+      html+=`<div style="text-align:center">${renderBall(parseInt(num),true)}<div style="font-size:9px;color:var(--muted)">${cnt}회</div></div>`;
+    });
+    html+='</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════
+// 끝자리 + AC값 분석
+// ═══════════════════════════════════════════
+function calcAC(nums){
+  const s=nums.sort((a,b)=>a-b);const diffs=new Set();
+  for(let i=0;i<s.length;i++)for(let j=i+1;j<s.length;j++)diffs.add(s[j]-s[i]);
+  return diffs.size-(nums.length-1);
+}
+function renderLastDigitAnalysis(){
+  const el=document.getElementById('lastDigitResult');
+  const allDraws=getSortedDraws();
+  if(allDraws.length<10){noDataMsg(el);return;}
+  const ldFreq={};for(let i=0;i<=9;i++)ldFreq[i]=0;
+  const acFreq={};let acSum=0;
+  allDraws.forEach(d=>{
+    d.nums.forEach(n=>{ldFreq[n%10]++;});
+    const ac=calcAC([...d.nums]);
+    acFreq[ac]=(acFreq[ac]||0)+1;acSum+=ac;
+  });
+  const total=allDraws.length*6;
+  const avgAC=(acSum/allDraws.length).toFixed(2);
+  let html=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:9px">끝자리 분포 (${allDraws.length}회차 × 6번 = ${total}개)</div>`;
+  html+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:13px">';
+  for(let d=0;d<=9;d++){
+    const pct=((ldFreq[d]/total)*100).toFixed(1);
+    const expected=(d===0?4:5)/45*100;
+    const over=ldFreq[d]/total>expected/100*1.1;
+    html+=`<div style="background:var(--surface);border:1px solid ${over?'var(--hot)':'var(--border)'};border-radius:10px;padding:6px 9px;text-align:center;min-width:52px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:${over?'var(--hot)':'var(--text)'}">끝${d}</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent2)">${pct}%</div>
+      <div style="font-size:9px;color:var(--muted)">${ldFreq[d]}회</div>
+    </div>`;
+  }
+  html+='</div>';
+  html+=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">AC값 분포 (평균: ${avgAC} / 이상적 범위: 7~10)</div>`;
+  const topAC=Object.entries(acFreq).sort((a,b)=>b[1]-a[1]);
+  const maxAC=topAC[0]?topAC[0][1]:1;
+  topAC.forEach(([ac,cnt])=>{
+    const barW=Math.round((cnt/maxAC)*100);
+    const clr=parseInt(ac)>=7&&parseInt(ac)<=10?'var(--green)':parseInt(ac)<5?'var(--hot)':'var(--warn)';
+    html+=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${clr};width:36px">AC${ac}</span>
+      <div style="flex:1"><div style="background:var(--border);border-radius:4px;height:7px"><div style="background:${clr};width:${barW}%;height:7px;border-radius:4px"></div></div></div>
+      <span style="font-size:10px;color:var(--muted)">${cnt}회</span>
+    </div>`;
+  });
+  el.innerHTML=html;
 }
 
 </script>
