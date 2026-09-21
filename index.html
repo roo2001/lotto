@@ -533,35 +533,25 @@ function getScoreLabel(score){
 // ═══════════════════════════════════════════
 // 동행복권 API
 // ═══════════════════════════════════════════
-const LOTTO_API='https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=';
-// 다중 CORS 프록시 — 순서대로 시도 (하나 실패하면 다음으로)
-const PROXIES=[
-  'https://api.allorigins.win/raw?url=',
-  'https://corsproxy.io/?',
-  'https://api.codetabs.com/v1/proxy?quest='
-];
 async function fetchDraw(drwNo){
-  const url=LOTTO_API+drwNo;
-  // 1차: 직접 호출
-  try{
-    const r=await fetch(url,{signal:AbortSignal.timeout(4000)});
-    if(r.ok){const d=await r.json();if(d&&d.returnValue)return d;}
-  }catch(e){}
-  // 2차: 프록시 순차 시도
-  for(const proxy of PROXIES){
-    try{
-      const r=await fetch(proxy+encodeURIComponent(url),{signal:AbortSignal.timeout(8000)});
-      if(!r.ok)continue;
-      const text=await r.text();
-      const d=JSON.parse(text);
-      if(d&&d.returnValue)return d;
-    }catch(e){continue;}
-  }
+  const url = `https://smok95.github.io/lotto/results/${drwNo}.json`;
+  try {
+    const r = await fetch(url, {signal: AbortSignal.timeout(5000)});
+    if(r.ok) {
+      const d = await r.json();
+      if(d && d.draw_no) return d;
+    }
+  } catch(e) {}
   return null;
 }
 function parseDraw(data){
-  if(!data||data.returnValue!=='success')return null;
-  return{drwNo:data.drwNo,date:data.drwNoDate,nums:[data.drwtNo1,data.drwtNo2,data.drwtNo3,data.drwtNo4,data.drwtNo5,data.drwtNo6],bonus:data.bnusNo};
+  if(!data || !data.draw_no) return null;
+  return {
+    drwNo: data.draw_no,
+    date: data.date.split('T')[0],
+    nums: data.numbers,
+    bonus: data.bonus_no
+  };
 }
 function estimateLatestDraw(){
   const start=new Date('2002-12-07');

@@ -1,5 +1,5 @@
 // LottoPro Service Worker — 오프라인 캐시 + 자동 업데이트
-const CACHE_NAME = 'lottopro-v5';
+const CACHE_NAME = 'lottopro-v6';
 const STATIC_CACHE = [
   './',
   './index.html',
