@@ -1,5 +1,5 @@
 // LottoPro v4.0 Service Worker — Network First + 오프라인 캐시 폴백
-const CACHE_NAME = 'lottopro-v9';
+const CACHE_NAME = 'lottopro-v10';
 const STATIC_ASSETS = [
   './',
   './index.html',

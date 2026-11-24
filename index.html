@@ -20,6 +20,7 @@
     <div class="sync-status">
       <span class="sync-dot" id="syncDot"></span>
       <span id="syncText">데이터 불러오는 중...</span>
+      <button class="btn btn-secondary btn-sm" id="btnHeaderSync" onclick="copySyncLink()">폰 동기화</button>
     </div>
   </div>
   <nav class="nav-wrap">
@@ -210,6 +211,7 @@
         <button class="btn btn-primary" onclick="handleGeneratePortfolio()">포트폴리오 생성</button>
         <button class="btn btn-secondary" id="btnToggleGenOmr" onclick="toggleGenOmrView()">7×7 OMR 용지 보기</button>
         <button class="btn btn-ghost" onclick="bulkSaveGenerated('gen')">생성 결과 일괄 저장</button>
+        <button class="btn btn-ghost" onclick="copySyncLink()">폰 동기화 링크 복사</button>
       </div>
     </div>
 
