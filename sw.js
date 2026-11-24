@@ -1,47 +1,44 @@
-// LottoPro Service Worker — 오프라인 캐시 + 자동 업데이트
-const CACHE_NAME = 'lottopro-v6';
-const STATIC_CACHE = [
+// LottoPro v4.0 Service Worker — Network First + 오프라인 캐시 폴백
+const CACHE_NAME = 'lottopro-v9';
+const STATIC_ASSETS = [
   './',
   './index.html',
+  './style.css',
+  './engine.js',
+  './wheels.js',
+  './app.js',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap'
+  './draws.json'
 ];
-const DATA_URL = './draws.json';
 
-// 설치: 정적 파일 캐시
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then(c => c.addAll(STATIC_CACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// 활성화: 구 캐시 삭제
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
-// fetch 전략:
-// - draws.json → Network First (항상 최신 데이터 시도, 실패 시 캐시)
-// - 나머지   → Cache First (정적 자산은 캐시 우선)
+// Network First 전략: 온라인일 때는 항상 최신 코드·데이터 반영, 오프라인 시 캐시 폴백
 self.addEventListener('fetch', e => {
-  const url = e.request.url;
-  if (url.includes('draws.json')) {
-    // Network First
-    e.respondWith(
-      fetch(e.request).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
         return res;
-      }).catch(() => caches.match(e.request))
-    );
-  } else {
-    // Cache First
-    e.respondWith(
-      caches.match(e.request).then(cached => cached || fetch(e.request))
-    );
-  }
+      })
+      .catch(() => caches.match(e.request))
+  );
 });
